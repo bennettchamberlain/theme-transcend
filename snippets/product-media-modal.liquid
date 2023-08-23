@@ -1,57 +1,47 @@
-{% comment %}
-  Renders a product media modal. Also see 'product-media-gallery'
+<script>window.sliderStrings = { closeTitle: `{{ 'cart.close' | t }}`, errorMsg: `{{ 'newsletter.error' | t }}` }</script>
 
-  Accepts:
-  - product: {Object} Product liquid object
-  - variant_images: {Array} Product images associated with a variant
+<script type="module">
+import PhotoSwipeLightbox from '{{ 'photoswipe-lightbox.min.js' | asset_url }}';
+const options = {
+    gallery: '[id^="Slider-Gallery-template"]',
+    children: '.slider__slide a',
+    bgOpacity: 1,
+    arrowPrev: false,
+    arrowNext: false,
+    zoom: false,
+    counter: false,
+    closeSVG: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon icon-x w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`,
+    closeTitle: window.sliderStrings.closeTitle,
+    errorMsg: window.sliderStrings.errorMsg,
+    pswpModule: () => import('{{ 'photoswipe.min.js' | asset_url }}')
+};
 
-  Usage:
-  {% render 'product-media-modal' %}
-{% endcomment %}
-
-<product-modal id="ProductModal-{{ section.id }}" class="product-media-modal media-modal">
-  <div
-    class="product-media-modal__dialog"
-    role="dialog"
-    aria-label="{{ 'products.modal.label' | t }}"
-    aria-modal="true"
-    tabindex="-1"
-  >
-    <button
-      id="ModalClose-{{ section.id }}"
-      type="button"
-      class="product-media-modal__toggle"
-      aria-label="{{ 'accessibility.close' | t }}"
-    >
-      {% render 'icon-close' %}
-    </button>
-
-    <div
-      class="product-media-modal__content color-{{ settings.color_schemes | first }} gradient"
-      role="document"
-      aria-label="{{ 'products.modal.label' | t }}"
-      tabindex="0"
-    >
-      {%- liquid
-        if product.selected_or_first_available_variant.featured_media != null
-          assign media = product.selected_or_first_available_variant.featured_media
-          render 'product-media', media: media, loop: section.settings.enable_video_looping, variant_image: section.settings.hide_variants
-        endif
-      -%}
-
-      {%- for media in product.media -%}
-        {%- liquid
-          if section.settings.hide_variants and variant_images contains media.src or variant_images contains media.id
-            assign variant_image = true
-          else
-            assign variant_image = false
-          endif
-
-          unless media.id == product.selected_or_first_available_variant.featured_media.id
-            render 'product-media', media: media, loop: section.settings.enable_video_looping, variant_image: variant_image
-          endunless
-        -%}
-      {%- endfor -%}
-    </div>
-  </div>
-</product-modal>
+const lightbox = new PhotoSwipeLightbox(options);
+lightbox.on('uiRegister', function() {
+    lightbox.pswp.ui.registerElement({
+        name: 'bottom-bar',
+        order: 5,
+        appendTo: "wrapper",
+        html: `
+            <x-grid columns="3" pi="center" class="modal-pagination">
+                <x-cell><button class="is-blank" rel="prev"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon icon-arrow-left w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg></button></x-cell>
+                <x-cell class="paginator" x-flex ai="center" jc="center" style="gap:var(--margin)">
+                    <span class="current-slide">1</span>
+                    <span>/</span> 
+                    <span class="total-slide"></span>
+                </x-cell>
+                <x-cell><button class="is-blank" rel="next"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon icon-arrow-right w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></button></x-cell>
+            </x-grid>
+        `,
+        onInit: (el, pswp) => {
+            el.querySelector(".total-slide").innerText = pswp.getNumItems();
+            el.querySelector('[rel="prev"]')?.addEventListener("click", () => pswp.prev());
+            el.querySelector('[rel="next"]')?.addEventListener("click", () => pswp.next());
+            pswp.on("change", () => {
+                el.querySelector(".current-slide").innerText = pswp.currIndex + 1;
+            });
+        }
+  });
+});
+lightbox.init();
+</script>

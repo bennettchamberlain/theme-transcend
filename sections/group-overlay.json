@@ -1,0 +1,14 @@
+{
+  "type": "aside",
+  "name": "Overlay",
+  "sections": {
+    "cookies": {
+      "type": "overlay-cookies",
+      "settings": {
+      }
+    }
+  },
+  "order": [
+    "cookies"
+  ]
+}

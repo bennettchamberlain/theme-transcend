@@ -1,9 +1,137 @@
+// Search
+document.querySelectorAll('.fire-search, .shrink-search').forEach(e => e.addEventListener('click', event => {
+    setTimeout(() => {
+        event.target.classList.contains('fire-search') && document.getElementById("Search-In-Template").focus() 
+    }, 100);
+
+    document.querySelector('body').classList.toggle('open-search');
+}));
+
+document.addEventListener('keyup', event => {
+    if (event.key === 'Escape' && document.querySelector('body').classList.contains('open-search')) document.querySelector('body').classList.remove('open-search');
+});
+
+// global.js
+function debounce(fn, wait) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+function fetchConfig(type = 'json') {
+  return {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': `application/${type}` }
+  };
+}
+
+// search-form.js
+class SearchForm extends HTMLElement {
+  constructor() {
+    super();
+    this.input = this.querySelector('input[type="search"]');
+    this.resetButton = this.querySelector('button[type="reset"]');
+
+    if (this.input) {
+      this.input.form.addEventListener('reset', this.onFormReset.bind(this));
+      this.input.addEventListener('input', debounce((event) => {
+        this.onChange(event);
+      }, 300).bind(this))
+    }
+  }
+
+  toggleResetButton() {
+    const resetIsHidden = this.resetButton.classList.contains('hidden');
+    if (this.input.value.length > 0 && resetIsHidden) {
+      this.resetButton.classList.remove('hidden')
+    } else if (this.input.value.length === 0  && !resetIsHidden) {
+      this.resetButton.classList.add('hidden')
+    }
+  }
+
+  onChange() {
+    this.toggleResetButton();
+  }
+
+  shouldResetForm() {
+    return !document.querySelector('[aria-selected="true"] a')
+  }
+
+  onFormReset(event) {
+    // Prevent default so the form reset doesn't set the value gotten from the url on page load
+    event.preventDefault();
+    // Don't reset if the user has selected an element on the predictive search dropdown
+    if (this.shouldResetForm()) {
+      this.input.value = '';
+      this.input.focus();
+      this.toggleResetButton();
+    }
+  }
+}
+
+customElements.define('search-form', SearchForm);
+
+// main-search.js
+class MainSearch extends SearchForm {
+  constructor() {
+    super();
+    this.allSearchInputs = document.querySelectorAll('input[type="search"]');
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
+    let allSearchForms = [];
+    this.allSearchInputs.forEach(input => allSearchForms.push(input.form))
+    this.input.addEventListener('focus', this.onInputFocus.bind(this));
+    if (allSearchForms.length < 2) return;
+    allSearchForms.forEach(form =>
+      form.addEventListener('reset', this.onFormReset.bind(this))
+    );
+    this.allSearchInputs.forEach(input =>
+      input.addEventListener('input', this.onInput.bind(this))
+    );
+  }
+
+  onFormReset(event) {
+    super.onFormReset(event);
+    if (super.shouldResetForm()) {
+      this.keepInSync('', this.input);
+    }
+  }
+
+  onInput(event) {
+    const target = event.target;
+    this.keepInSync(target.value, target);
+  }
+
+  onInputFocus() {
+    const isSmallScreen = window.innerWidth < 750;
+    if (isSmallScreen) {
+      this.scrollIntoView({behavior: 'smooth'});
+    }
+  }
+
+  keepInSync(value, target) {
+    this.allSearchInputs.forEach(input => {
+      if (input !== target) {
+        input.value = value;
+      }
+    });
+  }
+}
+
+customElements.define('main-search', MainSearch);
+
+// predictive-search.js
 class PredictiveSearch extends SearchForm {
   constructor() {
     super();
     this.cachedResults = {};
     this.predictiveSearchResults = this.querySelector('[data-predictive-search]');
-    this.allPredictiveSearchInstances = document.querySelectorAll('predictive-search');
+    this.allPredictiveSearchInstances =
+      document.querySelectorAll('predictive-search');
     this.isOpen = false;
     this.abortController = new AbortController();
     this.searchTerm = '';
@@ -15,7 +143,7 @@ class PredictiveSearch extends SearchForm {
     this.input.form.addEventListener('submit', this.onFormSubmit.bind(this));
 
     this.input.addEventListener('focus', this.onFocus.bind(this));
-    this.addEventListener('focusout', this.onFocusOut.bind(this));
+    //this.addEventListener('focusout', this.onFocusOut.bind(this));
     this.addEventListener('keyup', this.onKeyup.bind(this));
     this.addEventListener('keydown', this.onKeydown.bind(this));
   }
@@ -30,7 +158,7 @@ class PredictiveSearch extends SearchForm {
     if (!this.searchTerm || !newSearchTerm.startsWith(this.searchTerm)) {
       // Remove the results when they are no longer relevant for the new search term
       // so they don't show up when the dropdown opens again
-      this.querySelector('#predictive-search-results-groups-wrapper')?.remove();
+      this.querySelector("#predictive-search-results-groups-wrapper")?.remove();
     }
 
     // Update the term asap, don't wait for the predictive search query to finish loading
@@ -75,11 +203,11 @@ class PredictiveSearch extends SearchForm {
     }
   }
 
-  onFocusOut() {
-    setTimeout(() => {
-      if (!this.contains(document.activeElement)) this.close();
-    });
-  }
+  // onFocusOut() {
+  //   setTimeout(() => {
+  //     if (!this.contains(document.activeElement)) this.close();
+  //   })
+  // }
 
   onKeyup(event) {
     if (!this.getQuery().length) this.close(true);
@@ -87,7 +215,7 @@ class PredictiveSearch extends SearchForm {
 
     switch (event.code) {
       case 'ArrowUp':
-        this.switchOption('up');
+        this.switchOption('up')
         break;
       case 'ArrowDown':
         this.switchOption('down');
@@ -100,19 +228,20 @@ class PredictiveSearch extends SearchForm {
 
   onKeydown(event) {
     // Prevent the cursor from moving in the input when using the up and down arrow keys
-    if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+    if (
+      event.code === 'ArrowUp' ||
+      event.code === 'ArrowDown'
+    ) {
       event.preventDefault();
     }
   }
 
   updateSearchForTerm(previousTerm, newTerm) {
-    const searchForTextElement = this.querySelector('[data-predictive-search-search-for-text]');
+    const searchForTextElement = this.querySelector(
+      "[data-predictive-search-search-for-text]"
+    );
     const currentButtonText = searchForTextElement?.innerText;
     if (currentButtonText) {
-      if (currentButtonText.match(new RegExp(previousTerm, 'g')).length > 1) {
-        // The new term matches part of the button text and not just the search term, do not replace to avoid mistakes
-        return;
-      }
       const newButtonText = currentButtonText.replace(previousTerm, newTerm);
       searchForTextElement.innerText = newButtonText;
     }
@@ -126,9 +255,9 @@ class PredictiveSearch extends SearchForm {
 
     // Filter out hidden elements (duplicated page and article resources) thanks
     // to this https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
-    const allVisibleElements = Array.from(this.querySelectorAll('li, button.predictive-search__item')).filter(
-      (element) => element.offsetParent !== null
-    );
+    const allVisibleElements = Array.from(
+      this.querySelectorAll('li, button.predictive-search__item')
+    ).filter((element) => element.offsetParent !== null);
     let activeElementIndex = 0;
 
     if (moveUp && !selectedElement) return;
@@ -143,12 +272,18 @@ class PredictiveSearch extends SearchForm {
       i++;
     }
 
-    this.statusElement.textContent = '';
+    this.statusElement.textContent = "";
 
     if (!moveUp && selectedElement) {
-      activeElementIndex = selectedElementIndex === allVisibleElements.length - 1 ? 0 : selectedElementIndex + 1;
+      activeElementIndex =
+        selectedElementIndex === allVisibleElements.length - 1
+          ? 0
+          : selectedElementIndex + 1;
     } else if (moveUp) {
-      activeElementIndex = selectedElementIndex === 0 ? allVisibleElements.length - 1 : selectedElementIndex - 1;
+      activeElementIndex =
+        selectedElementIndex === 0
+          ? allVisibleElements.length - 1
+          : selectedElementIndex - 1;
     }
 
     if (activeElementIndex === selectedElementIndex) return;
@@ -162,13 +297,15 @@ class PredictiveSearch extends SearchForm {
   }
 
   selectOption() {
-    const selectedOption = this.querySelector('[aria-selected="true"] a, button[aria-selected="true"]');
+    const selectedOption = this.querySelector(
+      '[aria-selected="true"] a, button[aria-selected="true"]'
+    );
 
     if (selectedOption) selectedOption.click();
   }
 
   getSearchResults(searchTerm) {
-    const queryKey = searchTerm.replace(' ', '-').toLowerCase();
+    const queryKey = searchTerm.replace(" ", "-").toLowerCase();
     this.setLiveRegionLoadingState();
 
     if (this.cachedResults[queryKey]) {
@@ -176,9 +313,10 @@ class PredictiveSearch extends SearchForm {
       return;
     }
 
-    fetch(`${routes.predictive_search_url}?q=${encodeURIComponent(searchTerm)}&section_id=predictive-search`, {
-      signal: this.abortController.signal,
-    })
+    fetch(
+      `${routes.predictive_search_url}?q=${encodeURIComponent(searchTerm)}&section_id=predictive-search`,
+      { signal: this.abortController.signal }
+    )
       .then((response) => {
         if (!response.ok) {
           var error = new Error(response.status);
@@ -189,13 +327,13 @@ class PredictiveSearch extends SearchForm {
         return response.text();
       })
       .then((text) => {
-        const resultsMarkup = new DOMParser()
-          .parseFromString(text, 'text/html')
-          .querySelector('#shopify-section-predictive-search').innerHTML;
+        const resultsMarkup = new DOMParser().parseFromString(text, 'text/html').querySelector('#shopify-section-predictive-search').innerHTML;
         // Save bandwidth keeping the cache in all instances synced
-        this.allPredictiveSearchInstances.forEach((predictiveSearchInstance) => {
-          predictiveSearchInstance.cachedResults[queryKey] = resultsMarkup;
-        });
+        this.allPredictiveSearchInstances.forEach(
+          (predictiveSearchInstance) => {
+            predictiveSearchInstance.cachedResults[queryKey] = resultsMarkup;
+          }
+        );
         this.renderSearchResults(resultsMarkup);
       })
       .catch((error) => {
@@ -239,13 +377,15 @@ class PredictiveSearch extends SearchForm {
   }
 
   getResultsMaxHeight() {
-    this.resultsMaxHeight =
-      window.innerHeight - document.querySelector('.section-header').getBoundingClientRect().bottom;
+    //this.resultsMaxHeight = window.innerHeight - document.querySelector('main-search').getBoundingClientRect().bottom;
+    this.resultsMaxHeight = window.innerHeight - document.querySelector('#SearchControllers').offsetHeight - 100;
     return this.resultsMaxHeight;
   }
 
   open() {
-    this.predictiveSearchResults.style.maxHeight = this.resultsMaxHeight || `${this.getResultsMaxHeight()}px`;
+    //this.predictiveSearchResults.style.maxHeight = this.resultsMaxHeight || `${this.getResultsMaxHeight()}px`;
+    document.body.style.setProperty('--mainSearchHeight', `${this.getResultsMaxHeight()}px`);
+
     this.setAttribute('open', true);
     this.input.setAttribute('aria-expanded', true);
     this.isOpen = true;
@@ -269,7 +409,7 @@ class PredictiveSearch extends SearchForm {
     this.removeAttribute('loading');
     this.removeAttribute('open');
     this.input.setAttribute('aria-expanded', false);
-    this.resultsMaxHeight = false;
+    this.resultsMaxHeight = false
     this.predictiveSearchResults.removeAttribute('style');
   }
 }

@@ -1,0 +1,77 @@
+<section class="related products no-js-hidden">
+<h3 class="gs-title">{{ 'product.youd_also_like' | t }}</h3>
+<product-recommendations class="product product-recommendations page-width" data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ settings.cardGridCol }}">
+{% if recommendations.performed and recommendations.products_count > 0 %}
+{%- liquid
+    assign scrollerState = section.settings.horizontalScroller
+    assign totalProducts = recommendations.products_count
+
+    case scrollerState
+    when "desk"
+
+        assign horizontalScroll = nil
+        if totalProducts > 3
+            assign horizontalScroll = 'card scroll-snap'
+        endif
+
+    when "mob"
+        assign horizontalScroll = 'card scroll-snap-m'
+
+    when "both"
+
+        assign horizontalScroll = 'card scroll-snap-m'
+        if totalProducts > 3
+            assign horizontalScroll = 'card scroll-snap scroll-snap-m'
+        endif
+
+    else 
+        assign horizontalScroll = nil
+    endcase
+-%}
+<x-grid
+        class="cards {{ horizontalScroll }}"
+        columns="{{ settings.cardGridCol }}"
+        columns-m="{{ settings.cardGridCol-m }}"
+        columns-s="{{ settings.cardGridCol-s }}"
+        card-type="{{ settings.cardTypeOf }}"
+        card-ratio="{{ settings.cardRatio }}"
+        card-quickbuy="{{ settings.cardQuickBuy }}"
+        card-quickbuy-hover="{{ settings.cardHoverQuickBuy }}"
+        card-quickbuy-float="{{ settings.cardFloatQuickBuy }}"
+        card-img-crop="{{ settings.cardImgCrop }}"
+        card-img-radius="{{ settings.cardImgRadius }}"
+        card-img-padding="{{ settings.cardImgPadding }}"
+    >
+    {%- for product in recommendations.products -%}
+        {% render 'global-product-card' for product as product %}
+    {%- endfor -%}
+</x-grid>
+{% endif %}
+</product-recommendations>
+</section>
+
+<script src="{{ 'product-recommendations.js' | asset_url }}" type="module" defer></script>
+
+{% schema %}
+{
+    "name": "Product recommendations",
+    "settings": [
+        {
+            "type": "paragraph",
+            "content": "Control product recommendation with \"Shopify Search & Discovery app\", [learn more](https://help.shopify.com/en/manual/online-store/search-and-discovery/product-recommendations)."
+        },
+        {
+            "type": "select",
+            "id": "horizontalScroller",
+            "label": "Enable horizontal scroll",
+            "default": "mob",
+            "options": [
+                { "value": "none", "label": "None" },
+                { "value": "desk", "label": "Desktop" },
+                { "value": "mob", "label": "Mobile" },
+                { "value": "both", "label": "Desktop and mobile" }
+            ]
+        }
+    ]
+}
+{% endschema %}

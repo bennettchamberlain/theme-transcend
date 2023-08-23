@@ -1,0 +1,12 @@
+{
+  "sections": {
+    "main": {
+      "type": "t-page-brands",
+      "settings": {
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

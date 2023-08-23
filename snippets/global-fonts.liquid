@@ -1,0 +1,23 @@
+{%- comment -%}
+	# Add here your custom fonts.
+	# Follow the step by step guide: https://bullet.docs.openthinking.net/#/snippets?id=add-custom-fonts
+
+	# The code below has to be modified in order to work with your custom font.
+	# Use our Font Face Generator to generate the needed code for you: https://openthinking.app/x/font-face-generator/
+{%- endcomment -%}
+
+<style>
+	@font-face {
+	  font-family: "Annonce-Italic-Title";
+	  font-weight: 900;
+	  font-style: italic;
+	  font-display: swap;
+	  src:
+		url("https://cdn.shopify.com/s/files/1/0798/9169/3852/files/Annonce-Italic_copy.otf?v=1692043334") format("opentype")
+	
+	}
+	
+	:root {
+	 --logoFontFamily: "Annonce-Italic-Title"!important;
+	}
+	</style>
